@@ -3,9 +3,11 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+temp_auto_push.bat
 .venv/
 venv/
 .pytest_cache/
 .ruff_cache/
 .coverage
-htmlcov/
+htmlcov/.gitignore
+branch_structure.json

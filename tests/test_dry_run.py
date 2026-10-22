@@ -40,12 +40,16 @@ def test_dry_run_lists_all_statements_without_writing(tmp_path, directory):
 
     assert result.exit_code == (1 if directory else 0), result.output
     assert "not executed" in result.output
-    assert "0001_users.sql" in result.output
+    # The Rich console wraps long paths at the terminal width (80 cols on CI),
+    # inserting a newline inside the filename. Compare against the flattened
+    # output so the assertions tolerate any line-wrapping.
+    flat = "".join(result.output.splitlines())
+    assert "0001_users.sql" in flat
     assert "CREATE TABLE users" in result.output
     assert "ADD COLUMN email" in result.output
     assert "[red]hello[/red]" in result.output
     if directory:
-        assert result.output.index("0001_users.sql") < result.output.index("0002_remove.sql")
+        assert flat.index("0001_users.sql") < flat.index("0002_remove.sql")
         assert "DROP COLUMN email" in result.output
     assert snapshot(tmp_path) == before
 
