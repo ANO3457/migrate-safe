@@ -24,7 +24,25 @@ migrate-safe explain ./drizzle/migrations
 
 # Strict mode: fail on warnings too
 migrate-safe check --strict ./drizzle/migrations
+
+# Preview all planned SQL statements, then check their safety
+migrate-safe check --dry-run ./drizzle/migrations
 ```
+
+### Preview a migration plan
+
+`check --dry-run` lists every parsed SQL statement (including safe statements),
+with its file, position within the file, and detected statement type. Directory
+inputs are shown in filename order, as in a normal check.
+
+The preview does not modify migration files or execute SQL. This tool is a linter,
+not a migration runner: regular `check` also never applies SQL. The flag adds the
+detailed plan before the usual findings; it is not a database-backed simulation
+or a guarantee that a migration will succeed. The existing SQL parser's limits
+still apply.
+
+Safety exit codes are unchanged: unsafe/critical findings still exit 1, and
+`--strict --dry-run` also exits 1 on warnings. Files without findings exit 0.
 
 ## What it detects
 

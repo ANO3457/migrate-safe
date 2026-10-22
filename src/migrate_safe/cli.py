@@ -31,7 +31,12 @@ def main() -> None:
     is_flag=True,
     help="Exit with error code on WARNING findings (not just UNSAFE/CRITICAL).",
 )
-def check(path: str, strict: bool) -> None:
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Preview all planned SQL statements without executing or modifying anything.",
+)
+def check(path: str, strict: bool, dry_run: bool) -> None:
     """Check a migration file or directory for safety issues."""
     target = Path(path)
 
@@ -46,6 +51,21 @@ def check(path: str, strict: bool) -> None:
     if not migrations:
         console.print("[yellow]No .sql migration files found.[/yellow]")
         sys.exit(0)
+
+    if dry_run:
+        console.print("Dry run: planned SQL statements (not executed).", markup=False)
+        for migration in migrations:
+            console.print(
+                f"\n{migration.path} ({len(migration.statements)} statement(s))",
+                markup=False,
+                highlight=False,
+            )
+            for number, statement in enumerate(migration.statements, start=1):
+                console.print(
+                    f"  {number}. [{statement.type.value}] {statement.raw}",
+                    markup=False,
+                    highlight=False,
+                )
 
     all_findings = []
     total_files = 0
