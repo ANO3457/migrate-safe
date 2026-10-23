@@ -24,6 +24,7 @@ migrate-safe explain ./drizzle/migrations
 
 # Strict mode: fail on warnings too
 migrate-safe check --strict ./drizzle/migrations
+migrate-safe explain --strict ./drizzle/migrations
 ```
 
 ## What it detects
@@ -71,8 +72,14 @@ ALTER TABLE users DROP COLUMN name;
 
 ## Exit codes
 
+Both `check` and `explain` use these exit codes:
+
 - `0` — no UNSAFE/CRITICAL findings (or no findings at all)
 - `1` — UNSAFE or CRITICAL findings detected
+
+With `--strict`, WARNING findings also produce exit code `1`. An empty migration
+directory or a file with no findings still exits `0`. `explain` prints the complete
+report before returning its verdict.
 
 ## License
 
