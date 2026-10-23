@@ -40,8 +40,11 @@ class MigrationFile:
 
 
 # Regex patterns for SQL parsing
+# Keep quoted components balanced and all internal groups non-capturing.
+_IDENTIFIER = r'''(?:"(?:""|[^"])+"|`(?:``|[^`])+`|'(?:''|[^'])+'|[\w$]+)'''
+_OBJECT_NAME = rf"{_IDENTIFIER}(?:\s*\.\s*{_IDENTIFIER})?(?!\s*\.)(?=\s|[;(,]|$)"
 ALTER_TABLE_RE = re.compile(
-    r"ALTER\s+TABLE\s+[`\"']?(\w+)[`\"']?\s+(.*)",
+    rf"ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?({_OBJECT_NAME})\s+(.*)",
     re.IGNORECASE | re.DOTALL,
 )
 DROP_COLUMN_RE = re.compile(
@@ -61,17 +64,17 @@ ALTER_COLUMN_TYPE_RE = re.compile(
     re.IGNORECASE,
 )
 DROP_TABLE_RE = re.compile(
-    r"DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?[`\"']?(\w+)[`\"']?",
+    rf"DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?({_OBJECT_NAME})",
     re.IGNORECASE,
 )
 DROP_TYPE_RE = re.compile(
-    r"DROP\s+TYPE\s+(?:IF\s+EXISTS\s+)?[`\"']?(\w+)[`\"']?",
+    rf"DROP\s+TYPE\s+(?:IF\s+EXISTS\s+)?({_OBJECT_NAME})",
     re.IGNORECASE,
 )
 NOT_NULL_RE = re.compile(r"NOT\s+NULL", re.IGNORECASE)
 DEFAULT_RE = re.compile(r"DEFAULT\s+(\S+)", re.IGNORECASE)
 CREATE_TABLE_RE = re.compile(
-    r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`\"']?(\w+)[`\"']?",
+    rf"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?({_OBJECT_NAME})",
     re.IGNORECASE,
 )
 
@@ -227,12 +230,19 @@ def parse_sql_file(path: Path) -> MigrationFile:
     return migration
 
 
+def _table_name(name: str) -> str:
+    """Retain qualified names and the legacy unquoting of simple names."""
+    if name[0] in "\"`'" and re.fullmatch(r"\w+", name[1:-1]):
+        return name[1:-1]
+    return name
+
+
 def _parse_statement(text: str) -> SQLStatement:
     """Parse a single SQL statement."""
     # Check ALTER TABLE first (most common)
     alter_match = ALTER_TABLE_RE.match(text)
     if alter_match:
-        table = alter_match.group(1)
+        table = _table_name(alter_match.group(1))
         rest = alter_match.group(2) or ""
 
         # Determine what kind of ALTER TABLE
@@ -295,7 +305,7 @@ def _parse_statement(text: str) -> SQLStatement:
     if drop_table:
         return SQLStatement(
             type=StatementType.DROP_TABLE,
-            table=drop_table.group(1),
+            table=_table_name(drop_table.group(1)),
             raw=text,
         )
 
@@ -304,7 +314,7 @@ def _parse_statement(text: str) -> SQLStatement:
     if drop_type:
         return SQLStatement(
             type=StatementType.DROP_TYPE,
-            table=drop_type.group(1),
+            table=_table_name(drop_type.group(1)),
             raw=text,
         )
 
@@ -313,7 +323,7 @@ def _parse_statement(text: str) -> SQLStatement:
     if create_table:
         return SQLStatement(
             type=StatementType.CREATE_TABLE,
-            table=create_table.group(1),
+            table=_table_name(create_table.group(1)),
             raw=text,
         )
 
