@@ -38,6 +38,12 @@ migrate-safe check --strict ./drizzle/migrations
 
 ## Safe migration patterns
 
+Table and type names may be schema-qualified, for example `public.users` or
+`"tenant data"."user accounts"`. Findings retain the qualified name. The parser
+also recognizes `ALTER TABLE IF EXISTS`, `DROP TABLE/TYPE IF EXISTS`, and
+`CREATE TABLE IF NOT EXISTS`. This is a pattern-based linter, not a complete SQL
+validator; unsupported statements are not classified as findings.
+
 ### Instead of `DROP COLUMN`:
 ```sql
 -- Step 1 (deploy): make nullable
