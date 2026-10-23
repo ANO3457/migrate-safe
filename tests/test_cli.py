@@ -70,7 +70,7 @@ class TestCliExplain:
             f.flush()
 
             result = runner.invoke(main, ["explain", f.name])
-            assert result.exit_code == 0
+            assert result.exit_code == 1
             assert "DROP COLUMN" in result.output
 
 

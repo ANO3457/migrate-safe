@@ -123,7 +123,12 @@ def check(path: str, strict: bool) -> None:
 
 @main.command()
 @click.argument("path", type=click.Path(exists=True))
-def explain(path: str) -> None:
+@click.option(
+    "--strict",
+    is_flag=True,
+    help="Exit with error code on WARNING findings (not just UNSAFE/CRITICAL).",
+)
+def explain(path: str, strict: bool) -> None:
     """Explain findings in detail with safe migration patterns."""
     target = Path(path)
 
@@ -143,8 +148,10 @@ def explain(path: str) -> None:
     console.print("[bold]MIGRATE-SAFE — Rolling Deployment Safety Report")
     console.print("[bold blue]━" * 60)
 
+    all_findings = []
     for migration in migrations:
         findings = analyze_migration(migration)
+        all_findings.extend(findings)
         if not findings:
             console.print(f"\n[green]✓ {migration.path.name}[/green] — no issues")
             continue
@@ -152,6 +159,9 @@ def explain(path: str) -> None:
         console.print(f"\n[yellow]⚠ {migration.path.name}[/yellow] — {len(findings)} finding(s):")
         for finding in findings:
             console.print(f"\n  [bold]{finding}[/bold]")
+
+    has_issues = bool(all_findings) if strict else has_unsafe_findings(all_findings)
+    sys.exit(1 if has_issues else 0)
 
 
 if __name__ == "__main__":
